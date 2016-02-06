@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -86,8 +87,15 @@ namespace Microsoft.DotNet.Build.Tasks.Packaging
 
             foreach (var originalPackage in OriginalPackages)
             {
-                TaskItem updatedPackage = new TaskItem(originalPackage);
                 string packageId = originalPackage.ItemSpec;
+
+                if (packageId == "_._")
+                {
+                    updatedPackages.Add(originalPackage);
+                    continue;
+                }
+
+                TaskItem updatedPackage = new TaskItem(originalPackage);
                 Version packageVersion = ParseAs3PartVersion(originalPackage.GetMetadata("Version"));
                 Version stableVersion = null;
 

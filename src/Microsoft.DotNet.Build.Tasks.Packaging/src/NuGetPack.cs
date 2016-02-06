@@ -1,11 +1,12 @@
-﻿using Microsoft.Build.Framework;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using Microsoft.Build.Framework;
 using NuGet;
+using NuGet.Versioning;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Microsoft.DotNet.Build.Tasks.Packaging
 {
@@ -21,6 +22,18 @@ namespace Microsoft.DotNet.Build.Tasks.Packaging
 
         [Required]
         public string OutputDirectory
+        {
+            get;
+            set;
+        }
+        
+        public string BaseDirectory
+        {
+            get;
+            set;
+        }
+
+        public string PackageVersion
         {
             get;
             set;
@@ -67,9 +80,25 @@ namespace Microsoft.DotNet.Build.Tasks.Packaging
 
                     using (var nuspecFile = File.Open(nuspecPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                     {
+                        string baseDirectoryPath = (string.IsNullOrEmpty(BaseDirectory)) ? Path.GetDirectoryName(nuspecPath) : BaseDirectory;
                         Manifest manifest = Manifest.ReadFrom(nuspecFile);
                         builder.Populate(manifest.Metadata);
-                        builder.PopulateFiles(Path.GetDirectoryName(nuspecPath), manifest.Files);
+                        builder.PopulateFiles(baseDirectoryPath, manifest.Files);
+                    }
+
+                    // Overriding the Version from the Metadata if one gets passed in.
+                    if (!string.IsNullOrEmpty(PackageVersion))
+                    {
+                        NuGetVersion overrideVersion;
+                        if (NuGetVersion.TryParse(PackageVersion,out overrideVersion))
+                        {
+                            builder.Version = overrideVersion;
+                        }
+                        else
+                        {
+                            Log.LogError($"Failed to parse Package Version: '{PackageVersion}' is not a valid version.");
+                            continue;
+                        }
                     }
 
                     string id = builder.Id, version = builder.Version.ToString();

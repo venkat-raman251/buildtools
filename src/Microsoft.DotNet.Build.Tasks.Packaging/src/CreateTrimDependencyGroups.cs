@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -46,6 +47,8 @@ namespace Microsoft.DotNet.Build.Tasks.Packaging
             get;
             set;
         }
+
+        public bool UseNetPlatform { get; set; }
 
         /* Given a set of available frameworks ("InboxOnTargetFrameworks"), and a list of desired frameworks,
         reduce the set of frameworks to the minimum set of frameworks which is compatible (preferring inbox frameworks. */
@@ -94,7 +97,7 @@ namespace Microsoft.DotNet.Build.Tasks.Packaging
 
                 foreach (NuGetFramework inboxFramework in Frameworks.GetAlllInboxFrameworks(FrameworkListsPath))
                 {
-                    if (Generations.DetermineGenerationForFramework(inboxFramework) >= portableDependencyFramework.Version &&
+                    if (Generations.DetermineGenerationForFramework(inboxFramework, UseNetPlatform) >= portableDependencyFramework.Version &&
                         !frameworksToExclude.Contains(inboxFramework))
                     {
                         inboxFrameworksList.Add(inboxFramework);

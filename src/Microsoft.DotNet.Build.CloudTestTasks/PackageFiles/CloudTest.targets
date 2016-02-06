@@ -22,12 +22,18 @@
     <FuncTestListFile>$(TestWorkingDir)$(OSPlatformConfig)/$(FuncTestListFilename)</FuncTestListFile>
     <PerfTestListFile>$(TestWorkingDir)$(OSPlatformConfig)/$(PerfTestListFilename)</PerfTestListFile>
     <BuildStatsJsonFile>$(TestWorkingDir)$(OSPlatformConfig)/BuildStats.json</BuildStatsJsonFile>
+    <RunnerScript Condition="'$(RunnerScript)' == ''">%HELIX_SCRIPT_ROOT%\xunitrunner.py</RunnerScript>
+    <SupplementalPayloadDir Condition="'$(SupplementalPayloadDir)' == ''">$(TestWorkingDir)SupplementalPayload/</SupplementalPayloadDir>
+    <SupplementalPayloadFilename>SupplementalPayload.zip</SupplementalPayloadFilename>
+    <SupplementalPayloadFile>$(ArchivesRoot)$(SupplementalPayloadFilename)</SupplementalPayloadFile>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)CloudTest.Perf.targets" Condition="'$(Performance)' == 'true'" />
 
   <!-- main entrypoint -->
   <Target Name="CloudBuild"
           AfterTargets="Build"
-          DependsOnTargets="VerifyInputs;CreateTestListJson;UploadContent" />
+          DependsOnTargets="VerifyInputs;PreCloudBuild;CreateTestListJson;UploadContent" />
 
   <!-- gather the test archives for upload -->
   <ItemGroup>
@@ -50,12 +56,33 @@
     <Error Condition="'$(BuildIsOfficial)' == 'true' and '$(DocumentDbKey)' == ''" Text="Missing required property DocumentDbKey." />
     <Error Condition="'$(BuildIsOfficial)' == 'true' and '$(DocumentDbUri)' == ''" Text="Missing required property DocumentDbUri." />
     <!-- verify the test archives were created -->
-    <Error Condition="'@(ForUpload->Count())' == '0'" Text="Didn't find any test archives in '$(ArchivesRoot)'." />
+    <Error Condition="'@(ForUpload->Count())' == '0'" Text="Didn't find any test archives in '$(TestArchivesRoot)'." />
     <!-- add relative blob path metadata -->
     <ItemGroup>
       <ForUpload>
         <RelativeBlobPath>$(Platform)$(ConfigurationGroup)/Tests/%(Filename)%(Extension)</RelativeBlobPath>
       </ForUpload>
+    </ItemGroup>
+  </Target>
+
+  <!-- provided as an extensibility point for targets to run before the real work begins -->
+  <Target Name="PreCloudBuild">
+    <!-- copy runner scripts so they can be uploaded as supplemental payload -->
+    <ItemGroup>
+      <RunnerScripts Include="$(ToolsDir)RunnerScripts/**/*.py" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RunnerScripts)"
+          DestinationFiles="@(RunnerScripts->'$(SupplementalPayloadDir)RunnerScripts/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <!-- compress the supplemental payload directory for upload -->
+    <ZipFileCreateFromDirectory
+        SourceDirectory="$(SupplementalPayloadDir)"
+        DestinationArchive="$(SupplementalPayloadFile)"
+        OverwriteDestination="true" />
+    <ItemGroup>
+      <SupplementalPayload Include="$(SupplementalPayloadFile)">
+        <RelativeBlobPath>$(SupplementalPayloadFilename)</RelativeBlobPath>
+      </SupplementalPayload>
     </ItemGroup>
   </Target>
 
@@ -73,6 +100,15 @@
     <CreateProperty Value="$(DropUriRoot)/$(BuildArch)$(BuildType)">
       <Output TaskParameter="Value" PropertyName="DropUri" />
     </CreateProperty>
+    <!-- now that we have a drop URI create the list of correlation payloads -->
+    <ItemGroup>
+      <CorrelationPayloadUri Include="$(DropUri)$(Platform)$(ConfigurationGroup)/Packages.zip$(DropUriReadOnlyToken)" />
+      <CorrelationPayloadUri Include="@(SupplementalPayload->'$(DropUri)%(RelativeBlobPath)$(DropUriReadOnlyToken)')" />
+    </ItemGroup>
+    <!-- flatten it into a property as msbuild chokes on @(CorrelationPayloadUri) in FunctionalTest.CorrelationPayloadUris :( -->
+    <PropertyGroup>
+      <CorrelationPayloadUris>@(CorrelationPayloadUri)</CorrelationPayloadUris>
+    </PropertyGroup>
     <CreateAzureContainer
       AccountKey="$(CloudResultsAccessToken)"
       AccountName="$(CloudResultsAccountName)"
@@ -98,8 +134,8 @@
     </ItemGroup>
     <ItemGroup>
       <FunctionalTest>
-        <Command>%HELIX_PYTHONPATH% %HELIX_SCRIPT_ROOT%/xunitrunner.py --dll %(Filename).dll -- $(XunitArgs)</Command>
-        <CorrelationPayloadUris>[$(DropUri)$(Platform)$(ConfigurationGroup)/Packages.zip$(DropUriReadOnlyToken)]</CorrelationPayloadUris>
+        <Command>%HELIX_PYTHONPATH% $(RunnerScript) --dll %(Filename).dll -- $(XunitArgs)</Command>
+        <CorrelationPayloadUris>[$(CorrelationPayloadUris)]</CorrelationPayloadUris>
         <PayloadUri>$(DropUri)$(Platform)$(ConfigurationGroup)/Tests/%(Filename)%(Extension)$(DropUriReadOnlyToken)</PayloadUri>
         <WorkItemId>FunctionalTest.%(Filename)</WorkItemId>
       </FunctionalTest>
@@ -135,8 +171,8 @@
     </ItemGroup>
     <ItemGroup Condition="'@(PerfTestAssembly->Count())' != '0'">
       <PerfTest>
-        <Command>%HELIX_PYTHONPATH% %HELIX_SCRIPT_ROOT%/xunitrunner.py --dll %(Filename).dll --perf-runner Microsoft.DotNet.xunit.performance.runner.Windows -- $(XunitArgs)</Command>
-        <CorrelationPayloadUris>[$(DropUri)$(Platform)$(ConfigurationGroup)/Packages.zip$(DropUriReadOnlyToken)]</CorrelationPayloadUris>
+        <Command>%HELIX_PYTHONPATH% $(RunnerScript) --dll %(Filename).dll --perf-runner Microsoft.DotNet.xunit.performance.runner.Windows -- $(XunitArgs)</Command>
+        <CorrelationPayloadUris>[$(CorrelationPayloadUris)]</CorrelationPayloadUris>
         <PayloadUri>$(DropUri)$(Platform)$(ConfigurationGroup)/Tests/%(Filename)%(Extension)$(DropUriReadOnlyToken)</PayloadUri>
         <WorkItemId>PerfTest.%(Filename)</WorkItemId>
         <TimeoutInSeconds>600</TimeoutInSeconds>
@@ -187,6 +223,13 @@
       ContainerName="$(ContainerName)"
       Items="@(ForUpload)"
       Overwrite="true" />
+    <UploadToAzure
+      AccountKey="$(CloudDropAccessToken)"
+      AccountName="$(CloudDropAccountName)"
+      ContainerName="$(ContainerName)"
+      Items="@(SupplementalPayload)"
+      Overwrite="true"
+      Condition="'@(SupplementalPayload)' != ''" />
   </Target>
 
   <!-- write event hub notification JSON files -->
