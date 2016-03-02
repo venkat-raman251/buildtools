@@ -34,6 +34,7 @@
     <Compile Include="ParseTestCoverageInfo.cs" />
     <Compile Include="PreprocessFile.cs" />
     <Compile Include="RemoveDuplicatesWithLastOneWinsPolicy.cs" />
+    <Compile Include="RunApiCompat.cs" />
     <Compile Include="PrereleaseResolveNuGetPackageAssets.cs" />
     <Compile Include="UpdatePackageDependencyVersion.cs" />
     <Compile Include="VisitProjectDependencies.cs" />
@@ -55,6 +56,16 @@
   <ItemGroup>
     <None Include="project.json" />
     <None Include="PackageFiles\**\*.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApiCompat\ApiCompat.csproj">
+      <Project>{f74d3936-4d3e-42fd-b7e7-155a094d18c7}</Project>
+      <Name>ApiCompat</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Microsoft.Cci.Extensions\Microsoft.Cci.Extensions.csproj">
+      <Project>{2179f9b5-1dba-4563-9402-a94de75ea9fa}</Project>
+      <Name>Microsoft.Cci.Extensions</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
   <Target Name="AfterBuild">

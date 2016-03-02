@@ -2,13 +2,14 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <RootNamespace>ApiCompat</RootNamespace>
     <AssemblyName>ApiCompat</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <DefineConstants>$(DefineConstants);COREFX</DefineConstants>
     <NuGetRuntimeIdentifier>win7-x64</NuGetRuntimeIdentifier>
     <CLSCompliant>false</CLSCompliant>
+    <ProjectGuid>{F74D3936-4D3E-42FD-B7E7-155A094D18C7}</ProjectGuid>
   </PropertyGroup>
   <!-- Default configurations to help VS understand the configurations -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
@@ -17,7 +18,7 @@
     <Compile Include="DifferenceWriter.cs" />
     <Compile Include="MdilPublicOnlyCciFilter.cs" />
     <Compile Include="NamespaceRemappingComparer.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="ApiCompatRunner.cs" />
     <Compile Include="PublicEditorBrowsableOnlyCciFilter.cs" />
     <Compile Include="Rules\Compat\AttributeDifference.cs" />
     <Compile Include="Rules\Compat\CannotAddAbstractMembers.cs" />

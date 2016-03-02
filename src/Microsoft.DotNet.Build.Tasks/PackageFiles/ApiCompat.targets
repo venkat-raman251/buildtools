@@ -1,6 +1,7 @@
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="PrereleaseResolveNuGetPackageAssets" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll"/>
   <UsingTask TaskName="LocatePreviousContract" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll"/>
+  <UsingTask TaskName="RunApiCompat" AssemblyFile="$(BuildToolsTaskDir)Microsoft.DotNet.Build.Tasks.dll"/>
   
   <PropertyGroup>
     <ApiCompatBaseline>$(MSBuildProjectDirectory)\ApiCompatBaseline.txt</ApiCompatBaseline>
@@ -25,14 +26,12 @@
     <Warning Condition="!Exists('$(ReferenceProject)')" Text="$(MSBuildProjectDirectory) does not contain a corresponding ref project" />
     <Warning Condition="!Exists('$(ReferenceProjectLockJson)')" Text="The project.lock.json was not found for : $(ReferenceProject)" />    
     <PropertyGroup Condition="Exists('$(ReferenceProjectLockJson)')">
-      <_ApiCompatCmd>"$(ToolsDir)CoreRun.exe" "$(ToolsDir)ApiCompat.exe" "$(ReferenceAssembly)" </_ApiCompatCmd>
+      <_ApiCompatCmd>"$(ReferenceAssembly)" </_ApiCompatCmd>
       <_ApiCompatCmd>$(_ApiCompatCmd) -contractDepends:"@(_ContractDependencies);"</_ApiCompatCmd>
       <_ApiCompatCmd>$(_ApiCompatCmd) -implDirs:"$(OutputPath);@(_DependencyDirectories);"</_ApiCompatCmd>
       <_ApiCompatCmd Condition="Exists('$(ApiCompatBaseline)')">$(_ApiCompatCmd) -baseline:"$(ApiCompatBaseline)"</_ApiCompatCmd>
-    </PropertyGroup>
-    <Exec Condition="Exists('$(ReferenceProjectLockJson)')"
-          Command="$(_ApiCompatCmd)"
-          CustomErrorRegularExpression="^[a-zA-Z]+ :" />    
+    </PropertyGroup>        
+    <RunApiCompat Condition="Exists('$(ReferenceProjectLockJson)')" Arguments="$(_ApiCompatCmd)" />
   </Target>
 
   <!-- Get the set of directories where the dependencies can be found -->
@@ -68,15 +67,12 @@
           DependsOnTargets="GetPreviousContractDependencyDirectories;GetPreviousContractAssembly;GetCurrentContractDependencies"
           Condition="'$(RunApiCompatForRef)' == 'true'" >
     <PropertyGroup Condition="Exists('$(PreviousContractProjectLockJson)')">
-      <_ApiCompatCmd>"$(ToolsDir)CoreRun.exe" "$(ToolsDir)ApiCompat.exe" "$(_PreviousContractAssembly)"</_ApiCompatCmd>
+      <_ApiCompatCmd>"$(_PreviousContractAssembly)"</_ApiCompatCmd>
       <_ApiCompatCmd>$(_ApiCompatCmd) -contractDepends:"@(_PreviousContractDependencyDirectories);"</_ApiCompatCmd>
       <_ApiCompatCmd>$(_ApiCompatCmd) -implDirs:"$(ReferenceOutputPath);@(_CurrentContractDependencies);"</_ApiCompatCmd>
       <_ApiCompatCmd Condition="Exists('$(ApiCompatBaseline)')">$(_ApiCompatCmd) -baseline:"$(ApiCompatBaseline)"</_ApiCompatCmd>
-    </PropertyGroup>
-    <Exec Condition="Exists('$(PreviousContractProjectLockJson)')"
-          Command="$(_ApiCompatCmd)"
-          CustomErrorRegularExpression="^[a-zA-Z]+ :"
-          />    
+    </PropertyGroup>    
+    <RunApiCompat Condition="Exists('$(PreviousContractProjectLockJson)')" Arguments="$(_ApiCompatCmd)" />          
   </Target>
   
   <!-- Find the full path to the .csproj file of the previous version of the current contract -->

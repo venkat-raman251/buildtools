@@ -34,11 +34,12 @@ namespace ApiCompat
         public IEqualityComparer<ITypeReference> Settings { get; set; }
     }
 
-    public class Program
+    public static class ApiCompatRunner
     {
-        public static int Main(string[] args)
+        public static int ValidateApiCompat(string args)
         {
-            ParseCommandLine(args);
+            string[] argsArray = args.Split(' ');
+            ParseCommandLine(argsArray);
             CommandLineTraceHandler.Enable();
 
             if (s_listRules)
@@ -195,7 +196,7 @@ namespace ApiCompat
 
         private static CompositionHost GetCompositionHost()
         {
-            var configuration = new ContainerConfiguration().WithAssembly(typeof(Program).GetTypeInfo().Assembly);
+            var configuration = new ContainerConfiguration().WithAssembly(typeof(ApiCompatRunner).GetTypeInfo().Assembly);
             return configuration.CreateContainer();
         }
 
