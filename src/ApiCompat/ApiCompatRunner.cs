@@ -36,11 +36,30 @@ namespace ApiCompat
 
     public static class ApiCompatRunner
     {
-        public static int ValidateApiCompat(string args)
+        public static int ValidateApiCompat(string contracts, string implDirs, string contractDepends, string baseline, bool listRules,
+                string remapFile, bool groupByAssembly, bool unifyToLibPath, string outFile, bool resolveFx,
+                string contractCoreAssembly, bool ignoreDesignTimeFacades, bool warnOnIncorrectVersion,
+                bool warnOnMissingAssemblies, bool mdil, bool excludeNonBrowsable)
         {
-            string[] argsArray = args.Split(' ');
-            ParseCommandLine(argsArray);
+            Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat");
             CommandLineTraceHandler.Enable();
+            // Setting all the parameters that have been passed to the task
+            s_contractCoreAssembly = contractCoreAssembly;
+            s_contractSet = contracts;
+            s_implDirs = implDirs;
+            s_contractLibDirs = contractDepends;
+            s_listRules = listRules;
+            s_outFile = outFile;
+            s_baselineFileName = baseline;
+            s_remapFile = remapFile;
+            s_groupByAssembly = groupByAssembly;
+            s_mdil = mdil;
+            s_resolveFx = resolveFx;
+            s_unifyToLibPaths = unifyToLibPath;
+            s_warnOnIncorrectVersion = warnOnIncorrectVersion;
+            s_ignoreDesignTimeFacades = ignoreDesignTimeFacades;
+            s_excludeNonBrowsable = excludeNonBrowsable;
+            s_warnOnMissingAssemblies = warnOnMissingAssemblies;
 
             if (s_listRules)
             {
@@ -88,11 +107,11 @@ namespace ApiCompat
 
                     // The list of contractAssemblies already has the core assembly as the first one (if _contractCoreAssembly was specified).
                     IEnumerable<IAssembly> implAssemblies = implHost.LoadAssemblies(contractAssemblies.Select(a => a.AssemblyIdentity), s_warnOnIncorrectVersion);
-
+                    Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat. Before The exitcode");
                     // Exit after loading if the code is set to non-zero
                     if (DifferenceWriter.ExitCode != 0)
                         return 0;
-
+                    Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat. Before GetDiffWriter");
                     ICciDifferenceWriter writer = GetDifferenceWriter(output, filter);
                     writer.Write(s_implDirs, implAssemblies, s_contractSet, contractAssemblies);
                     return 0;
@@ -101,8 +120,9 @@ namespace ApiCompat
                 {
                     // FileNotFoundException will be thrown by GetBaselineDifferenceFilter if it doesn't find the baseline file
                     // OR if GetComparers doesn't find the remap file.
+                    Console.WriteLine("Nova: This is printing inside FileNotFoundException");
                     return 2;
-                }                
+                }
             }
         }
 
@@ -157,6 +177,7 @@ namespace ApiCompat
 
         private static ICciDifferenceWriter GetDifferenceWriter(TextWriter writer, IDifferenceFilter filter)
         {
+            Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat. Inside GetDiffWriter");
             CompositionHost container = GetCompositionHost();
 
             Func<IDifferenceRuleMetadata, bool> ruleFilter =
@@ -184,7 +205,7 @@ namespace ApiCompat
             {
                 filter = new DifferenceFilter<IncompatibleDifference>();
             }
-
+            Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat. Before new DifferenceWriter");
             ICciDifferenceWriter diffWriter = new DifferenceWriter(writer, settings, filter);
             ExportCciSettings.StaticSettings = settings.TypeComparer;
 
@@ -246,39 +267,6 @@ namespace ApiCompat
         private static Func<DifferenceType, bool> GetIncludeFilter()
         {
             return d => d != DifferenceType.Unchanged;
-        }
-
-        private static void ParseCommandLine(string[] args)
-        {
-            CommandLineParser p1 = new CommandLineParser(args);
-            p1.DefineOptionalQualifier("listRules", ref s_listRules, "Outputs all the rules. If this options is supplied all other options are ignored but you must specify contracts and implDir still '/listRules \"\" /implDirs='.");
-
-            if (s_listRules)
-                return;
-
-            CommandLineParser.ParseForConsoleApplication(delegate (CommandLineParser parser)
-            {
-                parser.DefineOptionalQualifier("listRules", ref s_listRules, "Outputs all the rules. If this options is supplied all other options are ignored.");
-                parser.DefineAliases("baseline", "bl");
-                parser.DefineOptionalQualifier("baseline", ref s_baselineFileName, "Baseline file to skip known diffs.");
-                parser.DefineOptionalQualifier("remapFile", ref s_remapFile, "File with a list of type and/or namespace remappings to consider apply to names while diffing.");
-                parser.DefineOptionalQualifier("groupByAssembly", ref s_groupByAssembly, "Group the differences by assembly instead of flattening the namespaces. Defaults to true.");
-                parser.DefineOptionalQualifier("unifyToLibPath", ref s_unifyToLibPaths, "Unify the assembly references to the loaded assemblies and the assemblies found in the given directories (contractDepends and implDirs). Defaults to true.");
-                parser.DefineOptionalQualifier("out", ref s_outFile, "Output file path. Default is the console.");
-                parser.DefineOptionalQualifier("resolveFx", ref s_resolveFx, "If a contract or implementation dependency cannot be found in the given directories, fallback to try to resolve against the framework directory on the machine.");
-                parser.DefineOptionalQualifier("contractDepends", ref s_contractLibDirs, "Comma delimited list of directories used to resolve the dependencies of the contract assemblies.");
-                parser.DefineAliases("contractCoreAssembly", "cca");
-                parser.DefineOptionalQualifier("contractCoreAssembly", ref s_contractCoreAssembly, "Simple name for the core assembly to use.");
-                parser.DefineAliases("ignoreDesignTimeFacades", "idtf");
-                parser.DefineOptionalQualifier("ignoreDesignTimeFacades", ref s_ignoreDesignTimeFacades, "Ignore design time facades in the contract set while analyzing.");
-                parser.DefineOptionalQualifier("warnOnIncorrectVersion", ref s_warnOnIncorrectVersion, "Warn if the contract version number doesn't match the found implementation version number.");
-                parser.DefineOptionalQualifier("warnOnMissingAssemblies", ref s_warnOnMissingAssemblies, "Warn if the contract assembly cannot be found in the implementation directories. Default is to error and not do anlysis.");
-                parser.DefineQualifier("implDirs", ref s_implDirs, "Comma delimited list of directories to find the implementation assemblies for each contract assembly.");
-                parser.DefineOptionalQualifier("mdil", ref s_mdil, "Enforce MDIL servicing rules in addition to IL rules.");
-                parser.DefineAliases("excludeNonBrowsable", "enb");
-                parser.DefineOptionalQualifier("excludeNonBrowsable", ref s_excludeNonBrowsable, "When MDIL servicing rules are not being enforced, exclude validation on types that are marked with EditorBrowsable(EditorBrowsableState.Never).");
-                parser.DefineParameter<string>("contracts", ref s_contractSet, "Comma delimited list of assemblies or directories of assemblies for all the contract assemblies.");
-            }, args);
         }
 
         private static string s_contractCoreAssembly;

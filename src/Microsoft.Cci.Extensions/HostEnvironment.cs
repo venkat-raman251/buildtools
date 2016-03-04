@@ -73,15 +73,17 @@ namespace Microsoft.Cci.Extensions
 
         public override IUnit LoadUnitFrom(string location)
         {
+            Console.Out.WriteLine("Nova : inside hostenv.loadunitfrom...location :  " + location);
             IUnit unit = _reader.OpenModule(
                 BinaryDocument.GetBinaryDocumentForFile(location, this));
-
+            Console.Out.WriteLine("Nova : inside hostenv.loadunitfrom... returned value : " + unit);
             this.RegisterAsLatest(unit);
             return unit;
         }
 
         public IAssembly LoadAssemblyFrom(string location)
         {
+            Console.Out.WriteLine("Nova : inside hostenv. loadassemblyfrom... ");
             return LoadUnitFrom(location) as IAssembly;
         }
 
@@ -105,7 +107,9 @@ namespace Microsoft.Cci.Extensions
 
         public IAssembly LoadAssemblyFrom(string location, Stream stream)
         {
-            return LoadUnitFrom(location, stream) as IAssembly;
+            var returnValue= LoadUnitFrom(location, stream) as IAssembly;
+            Console.Out.WriteLine("Nova : inside hostenv.loadassemblyfrom... returned value : " + returnValue);
+            return returnValue;
         }
 
         public IAssembly LoadAssembly(string assemblyNameOrPath)
@@ -113,7 +117,11 @@ namespace Microsoft.Cci.Extensions
             string path = assemblyNameOrPath;
 
             if (File.Exists(path))
+            {
+                Console.Out.WriteLine("Nova : inside hostenv.fileexists... " );
                 return this.LoadAssemblyFrom(path);
+            }
+                
 
             foreach (var extension in s_probingExtensions)
             {
@@ -525,10 +533,12 @@ namespace Microsoft.Cci.Extensions
         {
             List<IAssembly> assemblySet = new List<IAssembly>();
             IAssembly assembly = null;
-
+            Console.Out.WriteLine("Nova : returnValue in hostenv. LoadAssemblies(list<string>.first : " + paths.First<string>());
             foreach (string file in GetFilePathsAndAddResolvedDirectoriesToLibPaths(paths))
             {
                 string filePath = ProbeLibPaths(file);
+                Console.Out.WriteLine("Nova : returnValue in hostenv. LoadAssemblies(list<string>.file : " + file);
+                Console.Out.WriteLine("Nova : returnValue in hostenv. LoadAssemblies(list<string>.filePath : " + filePath);
                 if (filePath == null)
                 {
                     TraceLoadError("File does not exist {0}", file);

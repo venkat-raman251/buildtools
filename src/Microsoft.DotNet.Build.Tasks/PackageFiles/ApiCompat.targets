@@ -28,10 +28,11 @@
     <PropertyGroup Condition="Exists('$(ReferenceProjectLockJson)')">
       <_ApiCompatCmd>"$(ReferenceAssembly)" </_ApiCompatCmd>
       <_ApiCompatCmd>$(_ApiCompatCmd) -contractDepends:"@(_ContractDependencies);"</_ApiCompatCmd>
-      <_ApiCompatCmd>$(_ApiCompatCmd) -implDirs:"$(OutputPath);@(_DependencyDirectories);"</_ApiCompatCmd>
-      <_ApiCompatCmd Condition="Exists('$(ApiCompatBaseline)')">$(_ApiCompatCmd) -baseline:"$(ApiCompatBaseline)"</_ApiCompatCmd>
+      <_ImplDirs>"$(OutputPath);@(_DependencyDirectories);"</_ImplDirs>
+      <_ApiCompatCmd Condition="Exists('$(ApiCompatBaseline)')">"$(ApiCompatBaseline)"</_ApiCompatCmd>
     </PropertyGroup>        
-    <RunApiCompat Condition="Exists('$(ReferenceProjectLockJson)')" Arguments="$(_ApiCompatCmd)" />
+    <RunApiCompat Condition="Exists('$(ReferenceProjectLockJson)')" Contracts="$(ReferenceAssembly)" 
+                  ImplDirs="$(_ImplDirs)" ContractDepends="@(_ContractDependencies);" Baseline="$(ApiCompatBaseline)" />
   </Target>
 
   <!-- Get the set of directories where the dependencies can be found -->

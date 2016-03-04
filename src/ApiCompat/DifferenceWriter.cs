@@ -25,6 +25,7 @@ namespace Microsoft.Cci.Writers
         public DifferenceWriter(TextWriter writer, MappingSettings settings, IDifferenceFilter filter)
             : base(settings, filter)
         {
+            Console.WriteLine("Nova: This is printing inside apicompatRunner.ValidateApiCompat. Inside new DifferenceWriter");
             _writer = writer;
             _differences = new List<Difference>();
         }
@@ -32,18 +33,24 @@ namespace Microsoft.Cci.Writers
         public void Write(string oldAssembliesName, IEnumerable<IAssembly> oldAssemblies, string newAssembliesName, IEnumerable<IAssembly> newAssemblies)
         {
             this.Visit(oldAssemblies, newAssemblies);
-
+            Console.WriteLine("Nova: OldAssemblies outside : " + oldAssemblies.GetEnumerator().Current);
+            Console.WriteLine("Nova: newAssemblies outside: " + newAssemblies.GetEnumerator().Current);
+            Console.WriteLine("Nova: OldAssembliesname outside: " + oldAssembliesName);
+            Console.WriteLine("Nova: newAssembliesname outside: " + newAssembliesName);
             if (!this.Settings.GroupByAssembly)
             {
                 if (_differences.Count > 0)
                 {
+                    Console.WriteLine("Nova: OldAssemblies : " + oldAssemblies);
+                    Console.WriteLine("Nova: newAssembliesName : " + newAssembliesName);
+                    Console.WriteLine("Nova: newAssemblies : " + newAssemblies);
                     string header = string.Format("Compat issues between implementation set {0} and contract set {1}:", oldAssembliesName, newAssembliesName);
                     OutputDifferences(header, _differences);
                     _totalDifferences += _differences.Count;
                     _differences.Clear();
                 }
             }
-
+            Console.WriteLine("Nova: This is printing inside DifferenceWriter.Write total issues");
             _writer.WriteLine("Total Issues: {0}", _totalDifferences);
             _totalDifferences = 0;
         }
@@ -77,7 +84,7 @@ namespace Microsoft.Cci.Writers
         public override void Visit(Difference difference)
         {
             _differences.Add(difference);
-
+            Console.WriteLine("Nova: Inside vist differnce setting exitCode: " + difference);
             // For now use this to set the ExitCode to 2 if there are any differences
             DifferenceWriter.ExitCode = 2;
         }
